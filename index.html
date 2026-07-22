@@ -1,42 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schengen Visa Days Calculator – 90/180 Rule Tracker | Tabutility</title>
+  <meta name="description" content="Free Schengen visa days calculator. Track your 90/180 rule usage, see days remaining, and find out the earliest date you can re-enter the Schengen Area." />
+  <meta name="keywords" content="schengen calculator, 90 180 rule, schengen days, visa calculator, europe travel, schengen overstay" />
+  <link rel="canonical" href="https://schengen-calculator.tabutility.com/" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-78VZWJ5B1W"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-78VZWJ5B1W');</script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7039091592734005" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#f0f9ff;}.site-nav{background:#1a1a2e;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}.site-nav a{color:#a5b4fc;text-decoration:none;font-size:14px;font-family:'Segoe UI',Arial,sans-serif;}.site-nav a:hover{color:#fff;}.nav-brand{color:#fff;font-weight:700;font-size:16px;font-family:'Segoe UI',Arial,sans-serif;}#ad-top{text-align:center;padding:10px;background:#fff;border-bottom:1px solid #bae6fd;}#ad-bottom{text-align:center;padding:20px;background:#fff;border-top:1px solid #bae6fd;margin-top:20px;}</style>
+</head>
+<body>
+  <nav class="site-nav"><span class="nav-brand">⚡ Tabutility</span><a href="https://tabutility.com">← All Tools</a></nav>
+  <div id="ad-top"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-7039091592734005" data-ad-slot="auto" data-ad-format="horizontal" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});</script></div>
+  <div id="root"></div>
+  <div id="ad-bottom"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-7039091592734005" data-ad-slot="auto" data-ad-format="rectangle" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});</script></div>
+  <script type="text/babel">
+    const { useState, useCallback, useMemo } = React;
 
-    <!-- ✏️ UPDATE THESE FOR EVERY NEW TOOL -->
-    <title>TOOL NAME — TOOL TAGLINE | Tabutility</title>
-    <meta name="description" content="TOOL DESCRIPTION. No sign-up, runs in your browser." />
-    <meta name="keywords" content="KEYWORD 1, KEYWORD 2, KEYWORD 3, free TOOL NAME" />
-    <link rel="canonical" href="https://SUBDOMAIN.tabutility.com/" />
-    <meta property="og:url" content="https://SUBDOMAIN.tabutility.com/" />
-    <meta property="og:title" content="TOOL NAME — TOOL TAGLINE" />
-    <meta property="og:description" content="TOOL DESCRIPTION. Free, no sign-up." />
-    <meta name="twitter:title" content="TOOL NAME — TOOL TAGLINE" />
-    <meta name="twitter:description" content="TOOL DESCRIPTION. Free, no sign-up." />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>EMOJI</text></svg>" />
-    <!-- ✏️ END OF SECTION TO UPDATE -->
+    // Count days spent in Schengen in the 180-day window ending on `refDate`
+    function daysInWindow(trips, refDate) {
+      const windowStart = new Date(refDate);
+      windowStart.setDate(windowStart.getDate() - 179);
+      let days = 0;
+      for (const t of trips) {
+        const entry = new Date(t.entry);
+        const exit = new Date(t.exit);
+        if (isNaN(entry) || isNaN(exit) || exit < entry) continue;
+        const overlapStart = entry < windowStart ? windowStart : entry;
+        const overlapEnd = exit > refDate ? refDate : exit;
+        if (overlapStart <= overlapEnd) {
+          days += Math.round((overlapEnd - overlapStart) / 86400000) + 1;
+        }
+      }
+      return days;
+    }
 
-    <!-- DO NOT CHANGE ANYTHING BELOW THIS LINE -->
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Tabutility" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="robots" content="index, follow" />
+    // Find earliest date user can enter for a given planned stay length
+    function earliestEntry(trips, stayDays) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      for (let d = 0; d <= 365; d++) {
+        const candidate = new Date(today); candidate.setDate(today.getDate() + d);
+        // Check if stayDays can fit: all days of the planned stay must keep total ≤ 90
+        let ok = true;
+        for (let s = 0; s < stayDays; s++) {
+          const day = new Date(candidate); day.setDate(candidate.getDate() + s);
+          const futureDays = daysInWindow(trips, day) + (s + 1);
+          if (futureDays > 90) { ok = false; break; }
+        }
+        if (ok) return candidate;
+      }
+      return null;
+    }
 
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7039091592734005" crossorigin="anonymous"></script>
+    const fmtDate = d => d ? new Date(d).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" }) : "—";
+    const daysBetween = (a, b) => Math.round((b - a) / 86400000);
 
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-78VZWJ5B1W"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-78VZWJ5B1W');
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    function App() {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const todayStr = today.toISOString().split("T")[0];
+
+      const [trips, setTrips] = useState([{ entry: "", exit: "", id: 1 }]);
+      const [plannedDays, setPlannedDays] = useState("14");
+      const [result, setResult] = useState(null);
+      const [nextId, setNextId] = useState(2);
+
+      const addTrip = () => { setTrips(t => [...t, { entry:"", exit:"", id: nextId }]); setNextId(n => n+1); };
+      const removeTrip = id => setTrips(t => t.filter(x => x.id !== id));
+      const updateTrip = (id, field, val) => setTrips(t => t.map(x => x.id === id ? {...x, [field]: val} : x));
+
+      const calculate = useCallback(() => {
+        const validTrips = trips.filter(t => t.entry && t.exit && new Date(t.exit) >= new Date(t.entry));
+        const usedToday = daysInWindow(validTrips, today);
+        const remaining = Math.max(0, 90 - usedToday);
+
+        // Find next safe re-entry for planned stay
+        const planned = parseInt(plannedDays) || 14;
+        const canEnterToday = daysInWindow(validTrips, today) + planned <= 90;
+        const nextEntry = canEnterToday ? today : earliestEntry(validTrips, planned);
+
+        // Overstay check
+        const currentTrip = validTrips.find(t => new Date(t.entry) <= today && new Date(t.exit) >= today);
+        const currentlyInSchengen = !!currentTrip;
+
+        setResult({ usedToday, remaining, validTrips, planned, nextEntry, currentlyInSchengen, canEnterToday });
+      }, [trips, plannedDays, today]);
+
+      const statusColor = result ? (result.remaining >= 30 ? "#059669" : result.remaining >= 10 ? "#d97706" : "#dc2626") : "#3b82f6";
+      const inputStyle = { padding: "10px 12px", border: "2px solid #bae6fd", borderRadius: 9, fontSize: 15, outline: "none", background: "#fff" };
+
+      return (
+        <div style={{ fontFamily:"'Segoe UI',Arial,sans-serif", background:"#f0f9ff", minHeight:"100vh", padding:"20px" }}>
+          <div style={{ maxWidth:820, margin:"0 auto" }}>
+            <div style={{ textAlign:"center", marginBottom:32 }}>
+              <div style={{ fontSize:48, marginBottom:8 }}>🛂</div>
+              <h1 style={{ margin:0, fontSize:32, fontWeight:800, color:"#1a1a2e" }}>Schengen Visa Days Calculator</h1>
+              <p style={{ margin:"8px 0 0", color:"#555", fontSize:16 }}>Track your 90/180 rule — know exactly how many days you have left</p>
+            </div>
+
+            <div style={{ background:"#fff3cd", border:"1px solid #ffc107", borderRadius:12, padding:16, marginBottom:24, fontSize:14, color:"#664d03" }}>
+              <strong>The 90/180 rule:</strong> You may stay in the Schengen Area for a maximum of <strong>90 days</strong> in any <strong>180-day rolling window</strong>. The window moves daily, not per calendar year.
+            </div>
+
+            <div style={{ background:"#fff", borderRadius:16, padding:28, boxShadow:"0 4px 24px rgba(0,0,0,0.08)", marginBottom:24 }}>
+              <h3 style={{ margin:"0 0 16px", fontSize:16, fontWeight:700, color:"#1a1a2e" }}>📅 Enter Your Past & Planned Schengen Trips</h3>
+              {trips.map((trip, i) => (
+                <div key={trip.id} style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto", gap:12, marginBottom:12, alignItems:"end" }}>
+                  <div>
+                    <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#555", marginBottom:4 }}>Entry Date</label>
+                    <input type="date" value={trip.entry} max={todayStr} onChange={e => updateTrip(trip.id,"entry",e.target.value)} style={{ ...inputStyle, width:"100%" }} />
+                  </div>
+                  <div>
+                    <label style={{ display:"block", fontSize:13, fontWeight:600, color:"#555", marginBottom:4 }}>Exit Date</label>
+                    <input type="date" value={trip.exit} max={todayStr} onChange={e => updateTrip(trip.id,"exit",e.target.value)} style={{ ...inputStyle, width:"100%" }} />
+                  </div>
+                  <button onClick={() => removeTrip(trip.id)} style={{ padding:"10px 14px", background:"#fee2e2", color:"#dc2626", border:"none", borderRadius:9, cursor:"pointer", fontWeight:700, fontSize:16 }}>✕</button>
+                </div>
+              ))}
+              <button onClick={addTrip} style={{ padding:"10px 18px", background:"#eff6ff", color:"#3b82f6", border:"2px solid #bfdbfe", borderRadius:9, cursor:"pointer", fontWeight:600, fontSize:14, marginTop:4 }}>+ Add Trip</button>
+
+              <div style={{ marginTop:24, paddingTop:20, borderTop:"1px solid #f1f3f5" }}>
+                <label style={{ display:"block", fontSize:14, fontWeight:600, color:"#333", marginBottom:8 }}>Planned future stay (days)</label>
+                <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+                  <input type="number" value={plannedDays} min="1" max="90" onChange={e => setPlannedDays(e.target.value)} style={{ ...inputStyle, width:120 }} />
+                  <span style={{ fontSize:14, color:"#666" }}>days in Schengen</span>
+                </div>
+              </div>
+
+              <button onClick={calculate} style={{ width:"100%", marginTop:24, padding:"16px", background:"linear-gradient(135deg, #0369a1, #0284c7)", color:"#fff", border:"none", borderRadius:12, fontSize:18, fontWeight:700, cursor:"pointer" }}>
+                Check My Schengen Status
+              </button>
+            </div>
+
+            {result && (
+              <>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(170px,1fr))", gap:16, marginBottom:24 }}>
+                  {[
+                    { label:"Days Used (last 180 days)", value:result.usedToday, color: result.usedToday > 80 ? "#dc2626" : result.usedToday > 60 ? "#d97706" : "#0369a1", bg:"#f0f9ff" },
+                    { label:"Days Remaining", value:result.remaining, color: result.remaining < 10 ? "#dc2626" : result.remaining < 30 ? "#d97706" : "#059669", bg: result.remaining < 10 ? "#fff5f5" : "#f0fdf4" },
+                    { label:"Days for Planned Trip", value:result.planned, color:"#7c3aed", bg:"#faf5ff" },
+                    { label:"Can Enter Today?", value: result.canEnterToday ? "✅ Yes" : "❌ No", color: result.canEnterToday ? "#059669" : "#dc2626", bg: result.canEnterToday ? "#f0fdf4" : "#fff5f5" },
+                  ].map((item,i) => (
+                    <div key={i} style={{ background:item.bg, borderRadius:14, padding:20, textAlign:"center", border:`2px solid ${item.color}22` }}>
+                      <div style={{ fontSize:26, fontWeight:800, color:item.color }}>{item.value}</div>
+                      <div style={{ fontSize:13, color:"#555", marginTop:4, fontWeight:500 }}>{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Usage bar */}
+                <div style={{ background:"#fff", borderRadius:16, padding:24, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", marginBottom:24 }}>
+                  <h3 style={{ margin:"0 0 16px", fontSize:16, fontWeight:700, color:"#1a1a2e" }}>90-Day Usage</h3>
+                  <div style={{ height:24, background:"#f1f3f5", borderRadius:12, overflow:"hidden", marginBottom:8 }}>
+                    <div style={{ height:"100%", width:`${Math.min(100, (result.usedToday/90)*100)}%`, background: result.usedToday > 80 ? "#dc2626" : result.usedToday > 60 ? "#f59e0b" : "#0369a1", borderRadius:12, transition:"width 0.5s" }} />
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"#666" }}>
+                    <span><strong style={{ color:"#0369a1" }}>{result.usedToday} days used</strong></span>
+                    <span><strong style={{ color:"#059669" }}>{result.remaining} days remaining</strong> of 90</span>
+                  </div>
+                </div>
+
+                {/* Earliest entry */}
+                <div style={{ background: result.canEnterToday ? "#f0fdf4" : "#fff5f5", borderRadius:16, padding:24, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", marginBottom:24, border:`2px solid ${result.canEnterToday ? "#bbf7d0" : "#fecaca"}` }}>
+                  <h3 style={{ margin:"0 0 8px", fontSize:16, fontWeight:700, color:"#1a1a2e" }}>
+                    {result.canEnterToday ? "✅ You can enter the Schengen Area today" : "⏳ Earliest date for your planned stay"}
+                  </h3>
+                  {!result.canEnterToday && result.nextEntry && (
+                    <div style={{ fontSize:28, fontWeight:800, color:"#0369a1", marginTop:8 }}>
+                      {fmtDate(result.nextEntry)}
+                      <span style={{ fontSize:15, fontWeight:400, color:"#666", marginLeft:12 }}>
+                        ({daysBetween(today, result.nextEntry)} days from now)
+                      </span>
+                    </div>
+                  )}
+                  {result.canEnterToday && (
+                    <div style={{ fontSize:16, color:"#059669" }}>Your {result.planned}-day trip fits within your remaining {result.remaining} days.</div>
+                  )}
+                </div>
+
+                {/* Trip list */}
+                {result.validTrips.length > 0 && (
+                  <div style={{ background:"#fff", borderRadius:16, padding:24, boxShadow:"0 2px 12px rgba(0,0,0,0.06)" }}>
+                    <h3 style={{ margin:"0 0 16px", fontSize:16, fontWeight:700, color:"#1a1a2e" }}>Your Trips Summary</h3>
+                    <table style={{ width:"100%", borderCollapse:"collapse", fontSize:14 }}>
+                      <thead><tr style={{ background:"#f0f9ff" }}>{["Entry","Exit","Duration","In 180-day window?"].map(h=><th key={h} style={{ padding:"10px 14px", textAlign:"left", fontWeight:700, color:"#333" }}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {result.validTrips.map((t,i) => {
+                          const entry = new Date(t.entry), exit = new Date(t.exit);
+                          const dur = daysBetween(entry, exit) + 1;
+                          const windowStart = new Date(today); windowStart.setDate(today.getDate()-179);
+                          const inWindow = exit >= windowStart;
+                          return (
+                            <tr key={i} style={{ borderBottom:"1px solid #f1f3f5" }}>
+                              <td style={{ padding:"10px 14px" }}>{fmtDate(entry)}</td>
+                              <td style={{ padding:"10px 14px" }}>{fmtDate(exit)}</td>
+                              <td style={{ padding:"10px 14px", fontWeight:600 }}>{dur} day{dur!==1?"s":""}</td>
+                              <td style={{ padding:"10px 14px", color: inWindow?"#059669":"#9ca3af", fontWeight:600 }}>{inWindow ? "✅ Yes" : "No (too old)"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div style={{ background:"#fff", borderRadius:16, padding:24, boxShadow:"0 2px 12px rgba(0,0,0,0.06)", marginTop:24 }}>
+              <h3 style={{ margin:"0 0 12px", fontSize:16, fontWeight:700, color:"#1a1a2e" }}>🇪🇺 Schengen Area Countries (27)</h3>
+              <p style={{ fontSize:13, color:"#666", lineHeight:1.6 }}>Austria · Belgium · Croatia · Czech Republic · Denmark · Estonia · Finland · France · Germany · Greece · Hungary · Iceland · Italy · Latvia · Liechtenstein · Lithuania · Luxembourg · Malta · Netherlands · Norway · Poland · Portugal · Slovakia · Slovenia · Spain · Sweden · Switzerland</p>
+              <p style={{ fontSize:13, color:"#888", marginTop:10 }}>Note: Ireland and Cyprus are EU members but not in Schengen. Bulgaria and Romania are partially Schengen (air/sea from March 2024).</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
 </html>
