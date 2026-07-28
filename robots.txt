@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://schengen-calculator.tabutility.com/sitemap.xml
